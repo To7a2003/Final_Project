@@ -1,8 +1,8 @@
+import numpy as np
+import io
+import face_recognition
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
-from deepface import DeepFace
-import os
-import uuid
 
 app = FastAPI()
 
@@ -13,54 +13,32 @@ async def verify_face(
     test_image: UploadFile = File(...)
 ):
     try:
-        # حفظ الملفات المؤقتة بأسماء فريدة
-        id_path = f"temp_id_{uuid.uuid4()}.jpg"
-        ref_path = f"temp_ref_{uuid.uuid4()}.jpg"
-        test_path = f"temp_test_{uuid.uuid4()}.jpg"
+        # Read image bytes
+        id_bytes = await ID_image.read()
+        ref_bytes = await reference_image.read()
+        test_bytes = await test_image.read()
 
-        with open(id_path, "wb") as f:
-            f.write(await ID_image.read())
-        with open(ref_path, "wb") as f:
-            f.write(await reference_image.read())
-        with open(test_path, "wb") as f:
-            f.write(await test_image.read())
+        # Load and encode images
+        id_img = face_recognition.load_image_file(io.BytesIO(id_bytes))
+        ref_img = face_recognition.load_image_file(io.BytesIO(ref_bytes))
+        test_img = face_recognition.load_image_file(io.BytesIO(test_bytes))
 
-        # المقارنة مع إلغاء الكشف الإجباري عن الوجوه
-        result_id = DeepFace.verify(
-            img1_path=id_path,
-            img2_path=test_path,
-            model_name="VGG-Face",
-            detector_backend="opencv",
-            enforce_detection=False
-        )
+        id_enc = face_recognition.face_encodings(id_img)
+        ref_enc = face_recognition.face_encodings(ref_img)
+        test_enc = face_recognition.face_encodings(test_img)
 
-        result_ref = DeepFace.verify(
-            img1_path=ref_path,
-            img2_path=test_path,
-            model_name="VGG-Face",
-            detector_backend="opencv",
-            enforce_detection=False
-        )
+        # Ensure faces were detected
+        if not id_enc or not ref_enc or not test_enc:
+            return {"result": False, "reason": "No face found in one or more images."}
 
-        # تنظيف الملفات المؤقتة
-        os.remove(id_path)
-        os.remove(ref_path)
-        os.remove(test_path)
+        id_encoding = id_enc[0]
+        ref_encoding = ref_enc[0]
+        test_encoding = test_enc[0]
 
-        return {
-            "result": result_id["verified"] or result_ref["verified"],
-            "details": {
-                "ID_match": result_id["verified"],
-                "REF_match": result_ref["verified"],
-                "distance": {
-                    "ID": float(result_id["distance"]),
-                    "REF": float(result_ref["distance"])
-                }
-            }
-        }
+        match_id = face_recognition.compare_faces([id_encoding], test_encoding)[0]
+        match_ref = face_recognition.compare_faces([ref_encoding], test_encoding)[0]
+
+        return {"result": match_id and match_ref}
 
     except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"error": str(e)}
-        )
+        return {"result": False, "error": str(e)}
