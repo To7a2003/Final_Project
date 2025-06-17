@@ -14,35 +14,37 @@ async def verify_face(
     test_image: UploadFile = File(...)
 ):
     try:
-        # Read all 3 images
+        # Load image bytes
         id_bytes = await ID_image.read()
         ref_bytes = await reference_image.read()
         test_bytes = await test_image.read()
 
-        # Convert to numpy arrays
-        id_np = face_recognition.load_image_file(np.frombuffer(id_bytes, np.uint8))
-        ref_np = face_recognition.load_image_file(np.frombuffer(ref_bytes, np.uint8))
-        test_np = face_recognition.load_image_file(np.frombuffer(test_bytes, np.uint8))
+        # Convert bytes to images
+        id_np = face_recognition.load_image_file(np.frombuffer(id_bytes, dtype=np.uint8))
+        ref_np = face_recognition.load_image_file(np.frombuffer(ref_bytes, dtype=np.uint8))
+        test_np = face_recognition.load_image_file(np.frombuffer(test_bytes, dtype=np.uint8))
 
-        # Get encodings
-        id_faces = face_recognition.face_encodings(id_np)
-        ref_faces = face_recognition.face_encodings(ref_np)
-        test_faces = face_recognition.face_encodings(test_np)
+        # Encode faces
+        id_enc = face_recognition.face_encodings(id_np)
+        ref_enc = face_recognition.face_encodings(ref_np)
+        test_enc = face_recognition.face_encodings(test_np)
 
-        if not id_faces or not ref_faces or not test_faces:
-            return JSONResponse(content={"verified": False, "detail": "Face not found in one or more images."})
+        # Check if any image has no detected faces
+        if not id_enc or not ref_enc or not test_enc:
+            return JSONResponse(content={"verified": False, "detail": "No face found in one or more images."})
 
-        id_encoding = id_faces[0]
-        ref_encoding = ref_faces[0]
-        test_encoding = test_faces[0]
+        # Use first face only
+        id_encoding = id_enc[0]
+        ref_encoding = ref_enc[0]
+        test_encoding = test_enc[0]
 
-        # Compare
-        result = (
+        # Compare test image with both reference and ID
+        is_match = (
             face_recognition.compare_faces([id_encoding], test_encoding, tolerance=0.6)[0] or
             face_recognition.compare_faces([ref_encoding], test_encoding, tolerance=0.6)[0]
         )
 
-        return JSONResponse(content={"verified": result})
+        return JSONResponse(content={"verified": is_match})
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"detail": str(e)})
