@@ -1,6 +1,5 @@
-numpy
-pillow
-python-multipart
 fastapi
 uvicorn
+numpy
 face_recognition
+python-multipart
