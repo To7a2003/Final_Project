@@ -1,7 +1,9 @@
 fastapi
 uvicorn
 numpy
-face_recognition
+deepface
+opencv-python
 python-multipart
-Pillow==10.1.0
-cmake==3.28.3
+Pillow
+cmake
+tensorflow==2.15.0
