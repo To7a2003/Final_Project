@@ -1,4 +1,5 @@
 import numpy as np
+import io
 import face_recognition
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
