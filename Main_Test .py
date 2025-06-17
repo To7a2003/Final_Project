@@ -1,6 +1,4 @@
-import cv2
 import numpy as np
-import os
 import face_recognition
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
