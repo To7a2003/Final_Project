@@ -1,9 +1,8 @@
-fastapi
-uvicorn
-numpy
-deepface
-opencv-python
-python-multipart
-Pillow
-cmake
-tensorflow==2.15.0
+fastapi==0.109.1
+uvicorn==0.27.0
+deepface==0.0.79
+python-multipart==0.0.6
+Pillow==10.1.0
+numpy==1.26.4
+opencv-python-headless==4.9.0.80  # بديل أخف لـ opencv-python
+onnxruntime==1.16.3
